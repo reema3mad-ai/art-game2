@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الفن والطبيعة - الصف الثاني الابتدائي</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Arabic Font: Tajawal -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Tajawal', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #fef3c7 50%, #fbcfe8 100%);
+            min-height: 100vh;
+        }
+
+        /* Fun Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.85); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .animate-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .animate-pulse-btn {
+            animation: pulse-subtle 2s infinite;
+        }
+
+        /* Tactile Card Shadows & Buttons */
+        .game-card {
+            box-shadow: 0 10px 0 0 rgba(0, 0, 0, 0.08), 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .game-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-3d {
+            box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.15);
+            transition: all 0.15s ease;
+        }
+        
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.15);
+        }
+
+        /* Custom textures overlay for art lab */
+        .texture-burlap {
+            background-image: radial-gradient(#854d0e 15%, transparent 16%), radial-gradient(#a16207 15%, transparent 16%);
+            background-size: 12px 12px;
+            background-position: 0 0, 6px 6px;
+            background-color: #fef08a;
+        }
+
+        .texture-sandpaper {
+            background-image: repeating-radial-gradient(circle at 0 0, #d97706, #d97706 1px, #fef3c7 1px, #fef3c7 4px);
+        }
+
+        .texture-smooth {
+            background: #ffffff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f472b6;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 p-3 sm:p-6 overflow-x-hidden">
+
+    <!-- Top Header / Bar -->
+    <header class="w-full max-w-5xl mx-auto flex items-center justify-between bg-white/85 backdrop-blur-md p-4 rounded-3xl shadow-lg border-4 border-white mb-6">
+        <div class="flex items-center gap-3">
+            <button id="homeBtn" onclick="showScreen('mainMenu')" class="bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 py-2.5 rounded-2xl btn-3d font-black text-base sm:text-lg flex items-center gap-2">
+                <i class="fa-solid fa-house text-xl"></i>
+                <span class="hidden sm:inline">الرئيسية</span>
+            </button>
+            <div class="bg-emerald-100 border-2 border-emerald-300 px-3.5 py-1.5 rounded-2xl flex items-center gap-2">
+                <span class="text-2xl animate-bounce">🎨</span>
+                <div>
+                    <p class="text-xs text-emerald-700 font-bold">درس التربية الفنية</p>
+                    <p class="text-sm font-black text-emerald-950">الفن والطبيعة 🌿</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Stars Count -->
+            <div class="bg-amber-100 border-2 border-amber-300 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-inner">
+                <i class="fa-solid fa-star text-amber-500 text-2xl"></i>
+                <span id="starCounter" class="text-2xl font-black text-amber-700">0</span>
+            </div>
+            <!-- Sound Toggle -->
+            <button id="soundBtn" onclick="toggleSound()" class="bg-sky-400 hover:bg-sky-500 text-white p-3 rounded-2xl btn-3d font-bold text-xl">
+                <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-center items-center">
+
+        <!-- SCREEN 1: Main Menu -->
+        <section id="mainMenu" class="w-full flex flex-col items-center animate-pop">
+            <div class="text-center mb-6">
+                <span class="inline-block bg-white/90 text-emerald-800 font-black px-6 py-2 rounded-full text-sm sm:text-base mb-3 border-2 border-emerald-200 shadow-sm">
+                    ✨ لعبة درس التربية الفنية - الصف الثاني الابتدائي ✨
+                </span>
+                <h1 class="text-3xl sm:text-5xl font-black text-slate-800 drop-shadow-md leading-tight">
+                    مغامرات الفن والطبيعة 🌺
+                </h1>
+                <p class="text-slate-600 font-bold mt-2 text-base sm:text-lg">استكشف خطوط الطبيعة، ألوانها، ملامسها، واصنع فراشتك الجميلة!</p>
+            </div>
+
+            <!-- Subject Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full px-2">
+                
+                <!-- Stage 1: Nature Elements & Textures -->
+                <div onclick="startStage1()" class="game-card bg-gradient-to-b from-emerald-300 to-emerald-400 border-4 border-white p-6 rounded-3xl cursor-pointer hover:scale-105 transition transform text-center flex flex-col items-center justify-between group">
+                    <div class="w-24 h-24 bg-white/90 rounded-2xl flex items-center justify-center text-5xl mb-4 group-hover:rotate-6 transition">
+                        🍃
+                    </div>
+                    <div>
+                        <span class="bg-emerald-700 text-white text-xs font-black px-3 py-1 rounded-full mb-2 inline-block">المرحلة الأولى</span>
+                        <h2 class="text-2xl font-black text-emerald-950 mb-1">عناصر الطبيعة والملامس</h2>
+                        <p class="text-emerald-900 text-sm font-bold mb-4">اكتشف الخطوط والملامس والأشكال في الأشجار والصخور</p>
+                    </div>
+                    <span class="bg-white text-emerald-700 font-black px-6 py-2.5 rounded-xl text-lg btn-3d w-full">
+                        ابدأ التحدي <i class="fa-solid fa-arrow-left mr-2"></i>
+                    </span>
+                </div>
+
+                <!-- Stage 2: Art & Artists Gallery -->
+                <div onclick="startStage2()" class="game-card bg-gradient-to-b from-sky-300 to-sky-400 border-4 border-white p-6 rounded-3xl cursor-pointer hover:scale-105 transition transform text-center flex flex-col items-center justify-between group">
+                    <div class="w-24 h-24 bg-white/90 rounded-2xl flex items-center justify-center text-5xl mb-4 group-hover:-rotate-6 transition">
+                        🖼️
+                    </div>
+                    <div>
+                        <span class="bg-sky-700 text-white text-xs font-black px-3 py-1 rounded-full mb-2 inline-block">المرحلة الثانية</span>
+                        <h2 class="text-2xl font-black text-sky-950 mb-1">معرض اللوحات الفنية</h2>
+                        <p class="text-sky-900 text-sm font-bold mb-4">تعرف على لوحات الفنانين مونيه، برهان، بوقس، ورضوي</p>
+                    </div>
+                    <span class="bg-white text-sky-700 font-black px-6 py-2.5 rounded-xl text-lg btn-3d w-full">
+                        ابدأ التحدي <i class="fa-solid fa-arrow-left mr-2"></i>
+                    </span>
+                </div>
+
+                <!-- Stage 3: Butterfly Workshop -->
+                <div onclick="startStage3()" class="game-card bg-gradient-to-b from-pink-300 to-pink-400 border-4 border-white p-6 rounded-3xl cursor-pointer hover:scale-105 transition transform text-center flex flex-col items-center justify-between group">
+                    <div class="w-24 h-24 bg-white/90 rounded-2xl flex items-center justify-center text-5xl mb-4 group-hover:scale-110 transition">
+                        🦋
+                    </div>
+                    <div>
+                        <span class="bg-pink-700 text-white text-xs font-black px-3 py-1 rounded-full mb-2 inline-block">المرحلة الثالثة</span>
+                        <h2 class="text-2xl font-black text-pink-950 mb-1">ورشة صانع الفراشة</h2>
+                        <p class="text-pink-900 text-sm font-bold mb-4">ارسم، لوّن، اختر ملمس الخيش أو ورق الصنفرة وزيّن الأغراض</p>
+                    </div>
+                    <span class="bg-white text-pink-700 font-black px-6 py-2.5 rounded-xl text-lg btn-3d w-full">
+                        صمّم الفراشة <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Trophy Room Button -->
+            <button onclick="openTrophyModal()" class="mt-8 bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600 text-white font-black px-8 py-3.5 rounded-2xl btn-3d flex items-center gap-3 text-lg border-2 border-white shadow-lg">
+                <i class="fa-solid fa-trophy text-amber-300 text-2xl"></i>
+                صندوق أوسمة الفن والطبيعة 🏅
+            </button>
+        </section>
+
+        <!-- SCREEN 2: Stage 1 - Nature & Textures Quiz -->
+        <section id="stage1Game" class="w-full hidden flex-col items-center animate-pop">
+            <div class="w-full bg-white/95 rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-emerald-300 relative">
+                <!-- Level Header -->
+                <div class="flex justify-between items-center mb-6 border-b-2 border-emerald-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-emerald-500 text-white font-black px-4 py-1.5 rounded-xl text-sm">عناصر الطبيعة</span>
+                        <span id="stage1Progress" class="text-emerald-900 font-bold">السؤال 1 من 4</span>
+                    </div>
+                    <div id="stage1Score" class="font-black text-emerald-600">النقاط: 0</div>
+                </div>
+
+                <!-- Question Display -->
+                <div class="text-center my-4">
+                    <h3 id="stage1Title" class="text-2xl sm:text-3xl font-black text-slate-800 mb-2">تأمل الصورة، ما هو ملمس ورقة الشجرة الصنفرية؟</h3>
+                    <p id="stage1Subtitle" class="text-slate-500 font-bold mb-4">تتفاوت عناصر الطبيعة في خطوطها وألوانها وملامسها</p>
+
+                    <!-- Big Illustration Card -->
+                    <div class="bg-emerald-50 border-4 border-emerald-200 p-6 rounded-3xl inline-flex flex-col items-center justify-center min-w-[260px] my-2 shadow-inner">
+                        <div id="stage1Emoji" class="text-7xl mb-3 animate-float">🍂</div>
+                        <div id="stage1ItemText" class="text-2xl font-black text-emerald-900">أوراق النباتات والورق الخشن</div>
+                    </div>
+                </div>
+
+                <!-- Options Grid -->
+                <div id="stage1Options" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 max-w-2xl mx-auto">
+                    <!-- Buttons generated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: Stage 2 - Art & Artists Gallery -->
+        <section id="stage2Game" class="w-full hidden flex-col items-center animate-pop">
+            <div class="w-full bg-white/95 rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-sky-300 relative">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-6 border-b-2 border-sky-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-sky-500 text-white font-black px-4 py-1.5 rounded-xl text-sm">معرض اللوحات</span>
+                        <span id="stage2Progress" class="text-sky-900 font-bold">السؤال 1 من 4</span>
+                    </div>
+                    <div id="stage2Score" class="font-black text-sky-600">النقاط: 0</div>
+                </div>
+
+                <!-- Painting Card -->
+                <div class="text-center my-4">
+                    <h3 id="stage2Title" class="text-2xl font-black text-slate-800 mb-2">من هو الفنان صاحب هذه اللوحة المستوحاة من الطبيعة؟</h3>
+                    
+                    <div class="bg-sky-50 border-4 border-sky-200 p-4 rounded-3xl inline-flex flex-col items-center justify-center max-w-sm my-2 shadow-inner w-full">
+                        <div id="stage2ImageContainer" class="w-full h-44 bg-slate-200 rounded-2xl flex items-center justify-center text-6xl shadow-md border-2 border-white mb-3 overflow-hidden">
+                            🍇🍎
+                        </div>
+                        <div id="stage2ArtworkDesc" class="text-lg font-black text-sky-900">لوحة الفواكه وطبيعة غير حية</div>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div id="stage2Options" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 max-w-2xl mx-auto">
+                    <!-- Buttons generated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: Stage 3 - Butterfly Workshop (Interactive Canvas & Steps) -->
+        <section id="stage3Game" class="w-full hidden flex-col items-center animate-pop">
+            <div class="w-full bg-white/95 rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-pink-300 relative">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-4 border-b-2 border-pink-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-pink-500 text-white font-black px-4 py-1.5 rounded-xl text-sm">ورشة التربية الفنية</span>
+                        <span id="workshopStepText" class="text-pink-900 font-bold">الخطوة 1 من 5: رسم الخط الخارجي</span>
+                    </div>
+                    <button onclick="resetButterflyWorkshop()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl border">
+                        إعادة الورشة 🔄
+                    </button>
+                </div>
+
+                <!-- Workshop Workspace -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    
+                    <!-- Control Panel (Left/Top) -->
+                    <div class="md:col-span-5 bg-pink-50 p-5 rounded-3xl border-2 border-pink-200 flex flex-col gap-4">
+                        <div>
+                            <h4 id="stepInstructionTitle" class="text-xl font-black text-slate-800 mb-1">الخطوة الأولى ✏️</h4>
+                            <p id="stepInstructionBody" class="text-slate-600 text-sm font-bold">اختر شكل الخط الخارجي لرسم الفراشة الجميل.</p>
+                        </div>
+
+                        <!-- Step controls dynamic inject -->
+                        <div id="workshopControls" class="flex flex-col gap-3">
+                            <!-- Injected by JS based on current step -->
+                        </div>
+
+                        <!-- Action Button -->
+                        <button id="nextStepBtn" onclick="advanceButterflyStep()" class="mt-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-2xl btn-3d text-lg w-full flex items-center justify-center gap-2">
+                            <span>الخطوة التالية</span>
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                    </div>
+
+                    <!-- Visual Interactive Preview Area (Right/Bottom) -->
+                    <div class="md:col-span-7 flex flex-col items-center justify-center">
+                        
+                        <div id="artTextureCanvas" class="w-full h-72 sm:h-80 rounded-3xl border-4 border-slate-300 shadow-inner flex flex-col items-center justify-center relative transition-all overflow-hidden texture-smooth">
+                            
+                            <!-- Background Object Display (For final steps like bag, frame, pencil) -->
+                            <div id="targetObjectBg" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity">
+                                <span id="targetObjectIcon" class="text-9xl">🎒</span>
+                            </div>
+
+                            <!-- Interactive Butterfly Graphic SVG -->
+                            <div id="butterflySvgWrapper" class="relative z-10 transition-transform duration-300">
+                                <svg id="butterflySvg" width="220" height="180" viewBox="0 0 200 160" class="drop-shadow-lg">
+                                    <!-- Left Top Wing -->
+                                    <path id="wingLT" d="M100,80 C70,10 10,20 10,60 C10,90 60,95 100,80 Z" fill="#ffffff" stroke="#334155" stroke-width="4" stroke-dasharray="0"/>
+                                    <!-- Right Top Wing -->
+                                    <path id="wingRT" d="M100,80 C130,10 190,20 190,60 C190,90 140,95 100,80 Z" fill="#ffffff" stroke="#334155" stroke-width="4" stroke-dasharray="0"/>
+                                    <!-- Left Bottom Wing -->
+                                    <path id="wingLB" d="M100,80 C60,95 20,100 30,140 C45,160 85,130 100,80 Z" fill="#ffffff" stroke="#334155" stroke-width="4" stroke-dasharray="0"/>
+                                    <!-- Right Bottom Wing -->
+                                    <path id="wingRB" d="M100,80 C140,95 180,100 170,140 C155,160 115,130 100,80 Z" fill="#ffffff" stroke="#334155" stroke-width="4" stroke-dasharray="0"/>
+                                    
+                                    <!-- Inner Lines Layer -->
+                                    <g id="butterflyInnerLines" opacity="0">
+                                        <path d="M100,80 C70,40 40,40 30,60" fill="none" stroke="#000000" stroke-width="3"/>
+                                        <path d="M100,80 C130,40 160,40 170,60" fill="none" stroke="#000000" stroke-width="3"/>
+                                        <path d="M100,80 C70,100 50,110 45,130" fill="none" stroke="#000000" stroke-width="3"/>
+                                        <path d="M100,80 C130,100 150,110 155,130" fill="none" stroke="#000000" stroke-width="3"/>
+                                        <!-- Dots for wax detail -->
+                                        <circle cx="50" cy="50" r="4" fill="#000"/>
+                                        <circle cx="150" cy="50" r="4" fill="#000"/>
+                                        <circle cx="60" cy="120" r="3" fill="#000"/>
+                                        <circle cx="140" cy="120" r="3" fill="#000"/>
+                                    </g>
+
+                                    <!-- Body & Antennae -->
+                                    <ellipse cx="100" cy="80" rx="6" ry="35" fill="#1e293b"/>
+                                    <path d="M100,50 C95,35 85,25 78,25" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+                                    <path d="M100,50 C105,35 115,25 122,25" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+                                    <circle cx="78" cy="25" r="3" fill="#1e293b"/>
+                                    <circle cx="122" cy="25" r="3" fill="#1e293b"/>
+                                </svg>
+                            </div>
+
+                            <!-- Cut Scissors Animation Layer -->
+                            <div id="scissorsCutOverlay" class="absolute inset-0 pointer-events-none hidden items-center justify-center">
+                                <span class="text-6xl animate-bounce">✂️</span>
+                            </div>
+
+                        </div>
+
+                        <!-- Current Applied Texture Badge -->
+                        <div class="mt-3 flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-500">خامة الخلفية والملمس المستخدم:</span>
+                            <span id="appliedTextureTag" class="bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs px-3 py-1 rounded-full">
+                                ملمس أملس عادي 📄
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- MODAL 1: Feedback Modal (Success / Try Again) -->
+        <div id="feedbackModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white border-4 border-amber-400 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl animate-pop relative">
+                <div id="feedbackIcon" class="text-6xl mb-3">🎉</div>
+                <h3 id="feedbackTitle" class="text-3xl font-black text-slate-800 mb-2">إجابة رائعة!</h3>
+                <p id="feedbackMessage" class="text-slate-600 font-bold mb-6 text-lg">أنت فنان مبدع في فهم الطبيعة!</p>
+                <button id="feedbackBtn" onclick="nextQuestion()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black px-8 py-3 rounded-2xl btn-3d text-xl w-full">
+                    السؤال التالي <i class="fa-solid fa-arrow-left ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL 2: Trophies & Badges Modal -->
+        <div id="trophyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white border-4 border-purple-400 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl animate-pop relative">
+                <button onclick="closeTrophyModal()" class="absolute top-4 left-4 bg-slate-100 hover:bg-slate-200 text-slate-700 w-10 h-10 rounded-full font-bold">✕</button>
+                
+                <i class="fa-solid fa-trophy text-amber-400 text-5xl mb-2"></i>
+                <h3 class="text-3xl font-black text-slate-800 mb-1">أوسمة الفن والطبيعة</h3>
+                <p class="text-slate-500 font-bold mb-6">اجمع النجوم من الأنشطة وافتح الأوسمة الفنية!</p>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div id="badge1" class="border-2 border-slate-200 p-4 rounded-2xl opacity-40 bg-slate-50 flex flex-col items-center">
+                        <span class="text-4xl mb-1">🍃</span>
+                        <span class="font-black text-slate-700 text-sm">مستكشف الملامس</span>
+                        <span class="text-xs text-amber-600 font-bold mt-1">يتطلب 20 نجمة</span>
+                    </div>
+                    <div id="badge2" class="border-2 border-slate-200 p-4 rounded-2xl opacity-40 bg-slate-50 flex flex-col items-center">
+                        <span class="text-4xl mb-1">🖼️</span>
+                        <span class="font-black text-slate-700 text-sm">خبير اللوحات</span>
+                        <span class="text-xs text-amber-600 font-bold mt-1">يتطلب 40 نجمة</span>
+                    </div>
+                    <div id="badge3" class="border-2 border-slate-200 p-4 rounded-2xl opacity-40 bg-slate-50 flex flex-col items-center">
+                        <span class="text-4xl mb-1">🦋</span>
+                        <span class="font-black text-slate-700 text-sm">صانع الفراشات</span>
+                        <span class="text-xs text-amber-600 font-bold mt-1">يتطلب 60 نجمة</span>
+                    </div>
+                    <div id="badge4" class="border-2 border-slate-200 p-4 rounded-2xl opacity-40 bg-slate-50 flex flex-col items-center">
+                        <span class="text-4xl mb-1">👑</span>
+                        <span class="font-black text-slate-700 text-sm">فنان الطبيعة المبدع</span>
+                        <span class="text-xs text-amber-600 font-bold mt-1">يتطلب 80 نجمة</span>
+                    </div>
+                </div>
+
+                <button onclick="closeTrophyModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-black px-6 py-2.5 rounded-xl btn-3d w-full">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-slate-600 text-sm font-bold">
+        مغامرات الفن والطبيعة 🎨 مادة التربية الفنية للصف الثاني الابتدائي
+    </footer>
+
+    <script>
+        /* SOUND SYNTHESIZER (Web Audio API - Self Contained) */
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.3); // C6
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.exponentialRampToValueAtTime(130, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'paint') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'win') {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const noteOsc = audioCtx.createOscillator();
+                    const noteGain = audioCtx.createGain();
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(audioCtx.destination);
+
+                    noteOsc.type = 'sine';
+                    noteOsc.frequency.setValueAtTime(freq, now + (idx * 0.12));
+                    noteGain.gain.setValueAtTime(0.25, now + (idx * 0.12));
+                    noteGain.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.12) + 0.3);
+
+                    noteOsc.start(now + (idx * 0.12));
+                    noteOsc.stop(now + (idx * 0.12) + 0.3);
+                });
+            }
+        }
+
+        function toggleSound() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('soundIcon');
+            if (isMuted) {
+                icon.className = 'fa-solid fa-volume-xmark';
+            } else {
+                icon.className = 'fa-solid fa-volume-high';
+                playSound('click');
+            }
+        }
+
+        /* GAME STATE */
+        let totalStars = parseInt(localStorage.getItem('art_hero_stars') || '0');
+        let currentStage = 0; // 1, 2, 3
+        let currentQuestionIdx = 0;
+        let stageScore = 0;
+
+        document.getElementById('starCounter').textContent = totalStars;
+        updateBadgesUI();
+
+        function addStars(num) {
+            totalStars += num;
+            localStorage.setItem('art_hero_stars', totalStars.toString());
+            document.getElementById('starCounter').textContent = totalStars;
+            updateBadgesUI();
+        }
+
+        function updateBadgesUI() {
+            if (totalStars >= 20) unlockBadge('badge1');
+            if (totalStars >= 40) unlockBadge('badge2');
+            if (totalStars >= 60) unlockBadge('badge3');
+            if (totalStars >= 80) unlockBadge('badge4');
+        }
+
+        function unlockBadge(badgeId) {
+            const el = document.getElementById(badgeId);
+            if (el) {
+                el.classList.remove('opacity-40', 'bg-slate-50');
+                el.classList.add('bg-amber-50', 'border-amber-400', 'shadow-md');
+            }
+        }
+
+        function showScreen(screenId) {
+            playSound('click');
+            const screens = ['mainMenu', 'stage1Game', 'stage2Game', 'stage3Game'];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === screenId) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
+        }
+
+        /* -------------------------------------------------------------
+           STAGE 1 DATA: NATURE ELEMENTS & TEXTURES (من صفحة 20 و 21 بالدرس)
+        ------------------------------------------------------------- */
+        const stage1Data = [
+            {
+                title: "ما الملمس الذي تشعر به عندما تلمس جذع الشجرة والصخور؟",
+                subtitle: "تختلف عناصر الطبيعة في خطوطها وألوانها وملامسها",
+                emoji: "🪵",
+                itemText: "جذع الشجرة الصخور والرمال",
+                answer: "ملمس خشن",
+                options: ["ملمس خشن", "ملمس ناعم جداً", "ملمس أملس كالزجاج"]
+            },
+            {
+                title: "تأمل أوراق النباتات، كيف نَصِف خطوطها الداخلية والخارجية؟",
+                subtitle: "نشاط (1): تأمل مجموعة من أوراق النبات",
+                emoji: "🍃",
+                itemText: "ورقة نبات معروقة",
+                answer: "خطوط منحنية ومنسابة",
+                options: ["خطوط منحنية ومنسابة", "خطوط مربعة حادة", "بدون خطوط"]
+            },
+            {
+                title: "أين نجد الأحياء المائية والأسماك المتنوعة بالأشكال والألوان؟",
+                subtitle: "تتجلى قدرة الخالق سبحانه وتعالى في عناصر الطبيعة",
+                emoji: "🐠",
+                itemText: "الكائنات المائية",
+                answer: "في أعماق البحر",
+                options: ["في أعماق البحر", "فوق الجبال", "في الصحراء الجافة"]
+            },
+            {
+                title: "أي من التالي يُعتبر من عناصر الطبيعة التي خلقها الله؟",
+                subtitle: "النباتات والطيور والحشرات والجبال والحيوانات",
+                emoji: "🌺",
+                itemText: "الأزهار والأشجار والثمار",
+                answer: "جميع ما سبق من أشكال الطبيعة",
+                options: ["جميع ما سبق من أشكال الطبيعة", "السيارات فقط", "الألعاب البلاستيكية"]
+            }
+        ];
+
+        function startStage1() {
+            currentStage = 1;
+            currentQuestionIdx = 0;
+            stageScore = 0;
+            document.getElementById('stage1Score').textContent = "النقاط: 0";
+            showScreen('stage1Game');
+            loadStage1Question();
+        }
+
+        function loadStage1Question() {
+            const q = stage1Data[currentQuestionIdx];
+            document.getElementById('stage1Progress').textContent = `السؤال ${currentQuestionIdx + 1} من ${stage1Data.length}`;
+            document.getElementById('stage1Title').textContent = q.title;
+            document.getElementById('stage1Subtitle').textContent = q.subtitle;
+            document.getElementById('stage1Emoji').textContent = q.emoji;
+            document.getElementById('stage1ItemText').textContent = q.itemText;
+
+            const optionsGrid = document.getElementById('stage1Options');
+            optionsGrid.innerHTML = '';
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl py-4 px-4 rounded-2xl btn-3d shadow-md transition transform hover:scale-105';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(opt === q.answer);
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        /* -------------------------------------------------------------
+           STAGE 2 DATA: ART & ARTISTS GALLERY (من صفحة 22 و 23 بالدرس)
+        ------------------------------------------------------------- */
+        const stage2Data = [
+            {
+                title: "من هو الفنان العالمي الذي رسم لوحة (الفواكه والطبيعة الصامتة)؟",
+                desc: "شكل (9) في الكتاب المدرسي - لوحة الفواكه الطبيعية",
+                icon: "🍎🍇",
+                answer: "الفنان الفرنسي كلود مونيه",
+                options: ["الفنان الفرنسي كلود مونيه", "الفنان السعودي إحسان برهان", "الفنان إبراهيم بوقس"]
+            },
+            {
+                title: "ما هي عناصر الطبيعة في لوحة الفنان السعودي (إحسان برهان)؟",
+                desc: "شكل (10) في الكتاب المدرسي",
+                icon: "🍊🍊",
+                answer: "ثمار البرتقال الطبيعية",
+                options: ["ثمار البرتقال الطبيعية", "طيور محلقة", "جبال ثلجية"]
+            },
+            {
+                title: "ماذا استوحى الفنان السعودي (إبراهيم بوقس) في لوحته؟",
+                desc: "شكل (11) في الكتاب المدرسي",
+                icon: "🐟🌊",
+                answer: "الأسماك والأحياء المائية في البحر",
+                options: ["الأسماك والأحياء المائية في البحر", "الأزهار في الحديقة", "الصحراء والكثبان"]
+            },
+            {
+                title: "شارك الفنان (مجدي رضوي) في معرض المراسم بـ لوحة أسماك، ما عناصرها؟",
+                desc: "نشاط (2) شكل (12) - معرض المراسم 1409هـ",
+                icon: "🐠✨",
+                answer: "خطوط وألوان وملامس وأشكال الأسماك",
+                options: ["خطوط وألوان وملامس وأشكال الأسماك", "أشجار النخيل", "سيارات تسير"]
+            }
+        ];
+
+        function startStage2() {
+            currentStage = 2;
+            currentQuestionIdx = 0;
+            stageScore = 0;
+            document.getElementById('stage2Score').textContent = "النقاط: 0";
+            showScreen('stage2Game');
+            loadStage2Question();
+        }
+
+        function loadStage2Question() {
+            const q = stage2Data[currentQuestionIdx];
+            document.getElementById('stage2Progress').textContent = `السؤال ${currentQuestionIdx + 1} من ${stage2Data.length}`;
+            document.getElementById('stage2Title').textContent = q.title;
+            document.getElementById('stage2ArtworkDesc').textContent = q.desc;
+            document.getElementById('stage2ImageContainer').textContent = q.icon;
+
+            const optionsGrid = document.getElementById('stage2Options');
+            optionsGrid.innerHTML = '';
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-sky-500 hover:bg-sky-600 text-white font-black text-xl py-4 px-4 rounded-2xl btn-3d shadow-md transition transform hover:scale-105';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(opt === q.answer);
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        /* -------------------------------------------------------------
+           ANSWER CHECKING & FEEDBACK LOGIC
+        ------------------------------------------------------------- */
+        function checkAnswer(isCorrect) {
+            const modal = document.getElementById('feedbackModal');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const msg = document.getElementById('feedbackMessage');
+
+            modal.classList.remove('hidden');
+
+            if (isCorrect) {
+                playSound('correct');
+                stageScore += 10;
+                addStars(5);
+
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+
+                icon.textContent = "🌟🎨";
+                title.textContent = "إجابة ممتازة ومبدعة!";
+                title.className = "text-3xl font-black text-emerald-600 mb-2";
+                msg.textContent = "أحسنت يا بطل الفن! حصلت على +5 نجوم ⭐";
+            } else {
+                playSound('wrong');
+                icon.textContent = "💪🎨";
+                title.textContent = "حاول مرة أخرى!";
+                title.className = "text-3xl font-black text-amber-600 mb-2";
+                msg.textContent = "تأمل عناصر الطبيعة جيداً ثم حاول الإجابة مرة ثانية!";
+            }
+
+            if (currentStage === 1) document.getElementById('stage1Score').textContent = `النقاط: ${stageScore}`;
+            if (currentStage === 2) document.getElementById('stage2Score').textContent = `النقاط: ${stageScore}`;
+        }
+
+        function nextQuestion() {
+            document.getElementById('feedbackModal').classList.add('hidden');
+            currentQuestionIdx++;
+
+            let maxLen = 0;
+            if (currentStage === 1) maxLen = stage1Data.length;
+            if (currentStage === 2) maxLen = stage2Data.length;
+
+            if (currentQuestionIdx < maxLen) {
+                if (currentStage === 1) loadStage1Question();
+                if (currentStage === 2) loadStage2Question();
+            } else {
+                showStageComplete();
+            }
+        }
+
+        function showStageComplete() {
+            playSound('win');
+            
+            confetti({
+                particleCount: 120,
+                spread: 100,
+                origin: { y: 0.5 }
+            });
+
+            const modal = document.getElementById('feedbackModal');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const msg = document.getElementById('feedbackMessage');
+            const btn = document.getElementById('feedbackBtn');
+
+            modal.classList.remove('hidden');
+            icon.textContent = "🏆✨";
+            title.textContent = "أبدعت في هذه المرحلة!";
+            title.className = "text-3xl font-black text-purple-600 mb-2";
+            msg.textContent = `مجموع نقاطك في المرحلة: ${stageScore} نقطة! أصبحت الآن خبيراً في الفن والطبيعة!`;
+
+            btn.textContent = "العودة للقائمة الرئيسية 🏠";
+            btn.onclick = () => {
+                modal.classList.add('hidden');
+                showScreen('mainMenu');
+            };
+        }
+
+        /* -------------------------------------------------------------
+           STAGE 3: INTERACTIVE BUTTERFLY WORKSHOP (صفحة 24 و 25 بالدرس)
+        ------------------------------------------------------------- */
+        let butterflyStep = 1; // 1 to 5
+        let currentWingColor = "#f472b6"; // default pink
+        let currentTextureMode = "smooth"; // smooth, sandpaper, burlap
+
+        function startStage3() {
+            currentStage = 3;
+            showScreen('stage3Game');
+            resetButterflyWorkshop();
+        }
+
+        function resetButterflyWorkshop() {
+            butterflyStep = 1;
+            currentWingColor = "#f472b6";
+            currentTextureMode = "smooth";
+            updateWorkshopStepUI();
+        }
+
+        function advanceButterflyStep() {
+            playSound('paint');
+            if (butterflyStep < 5) {
+                butterflyStep++;
+                updateWorkshopStepUI();
+            } else {
+                // Finish Butterfly Workshop!
+                playSound('win');
+                addStars(15);
+                confetti({ particleCount: 100, spread: 80 });
+
+                const modal = document.getElementById('feedbackModal');
+                document.getElementById('feedbackIcon').textContent = "🦋✨";
+                document.getElementById('feedbackTitle').textContent = "مبروك! اكتمل عملك الفني الجميلة!";
+                document.getElementById('feedbackTitle').className = "text-3xl font-black text-pink-600 mb-2";
+                document.getElementById('feedbackMessage').textContent = "لقد صنعت فراشة رائعة واستفدت منها نفعياً وجمالياً! (+15 نجمة ⭐)";
+                document.getElementById('feedbackBtn').textContent = "العودة للقائمة الرئيسية 🏠";
+                document.getElementById('feedbackBtn').onclick = () => {
+                    modal.classList.add('hidden');
+                    showScreen('mainMenu');
+                };
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function setWingColor(colorHex) {
+            playSound('paint');
+            currentWingColor = colorHex;
+            const wings = ['wingLT', 'wingRT', 'wingLB', 'wingRB'];
+            wings.forEach(id => {
+                document.getElementById(id).setAttribute('fill', colorHex);
+            });
+        }
+
+        function setTexture(mode) {
+            playSound('click');
+            currentTextureMode = mode;
+            const canvasEl = document.getElementById('artTextureCanvas');
+            const tagEl = document.getElementById('appliedTextureTag');
+
+            canvasEl.className = canvasEl.className.replace(/texture-\w+/g, '');
+
+            if (mode === 'burlap') {
+                canvasEl.classList.add('texture-burlap');
+                tagEl.textContent = "ملمس خشن (قماش الخيش) 🌾";
+            } else if (mode === 'sandpaper') {
+                canvasEl.classList.add('texture-sandpaper');
+                tagEl.textContent = "ملمس بارز (ورق صنفرة) 📜";
+            } else {
+                canvasEl.classList.add('texture-smooth');
+                tagEl.textContent = "ملمس أملس عادي 📄";
+            }
+        }
+
+        function setTargetObject(objectIcon) {
+            playSound('click');
+            const bgContainer = document.getElementById('targetObjectBg');
+            const iconEl = document.getElementById('targetObjectIcon');
+            const wrapper = document.getElementById('butterflySvgWrapper');
+
+            bgContainer.style.opacity = '1';
+            iconEl.textContent = objectIcon;
+
+            // Scale butterfly to look attached
+            wrapper.style.transform = 'scale(0.65) translateY(20px)';
+        }
+
+        function updateWorkshopStepUI() {
+            const stepText = document.getElementById('workshopStepText');
+            const titleEl = document.getElementById('stepInstructionTitle');
+            const bodyEl = document.getElementById('stepInstructionBody');
+            const controlsDiv = document.getElementById('workshopControls');
+            const innerLinesGroup = document.getElementById('butterflyInnerLines');
+            const scissorsOverlay = document.getElementById('scissorsCutOverlay');
+            const bgContainer = document.getElementById('targetObjectBg');
+            const wrapper = document.getElementById('butterflySvgWrapper');
+            const nextBtn = document.getElementById('nextStepBtn');
+
+            scissorsOverlay.classList.add('hidden');
+
+            if (butterflyStep === 1) {
+                stepText.textContent = "الخطوة 1 من 5: رسم الخط الخارجي للفراشة ✏️";
+                titleEl.textContent = "الخطوة الأولى ✏️";
+                bodyEl.textContent = "نرسم الخط الخارجي لجناح الفراشة بخطوط منحنية أنيقة.";
+                
+                bgContainer.style.opacity = '0';
+                wrapper.style.transform = 'scale(1)';
+                innerLinesGroup.setAttribute('opacity', '0');
+                setWingColor('#ffffff');
+
+                controlsDiv.innerHTML = `
+                    <p class="text-xs font-bold text-slate-600">اختر شكل سمك الخط الخارجي:</p>
+                    <div class="flex gap-2">
+                        <button onclick="setOutlineWidth(3)" class="bg-white border-2 border-slate-300 px-4 py-2 rounded-xl text-sm font-bold flex-1 hover:border-pink-500">خط رفيع</button>
+                        <button onclick="setOutlineWidth(5)" class="bg-white border-2 border-slate-300 px-4 py-2 rounded-xl text-sm font-bold flex-1 hover:border-pink-500">خط متوسط</button>
+                        <button onclick="setOutlineWidth(7)" class="bg-white border-2 border-slate-300 px-4 py-2 rounded-xl text-sm font-bold flex-1 hover:border-pink-500">خط عريض</button>
+                    </div>
+                `;
+                nextBtn.querySelector('span').textContent = "الانتقال لرسم الخطوط الداخلية";
+            }
+            else if (butterflyStep === 2) {
+                stepText.textContent = "الخطوة 2 من 5: رسم الخطوط الداخلية بالأسود الشمعي 🖊️";
+                titleEl.textContent = "الخطوة الثانية 🖊️";
+                bodyEl.textContent = "نرسم مجموعة من الخطوط والتفاصيل داخل جناح الفراشة باللون الأسود الشمعي.";
+                
+                innerLinesGroup.setAttribute('opacity', '1');
+
+                controlsDiv.innerHTML = `
+                    <p class="text-xs font-bold text-slate-600">تم إضافة الخطوط والدوائر الداخلية بنجاح! اختر نمط التفاصيل:</p>
+                    <div class="flex gap-2">
+                        <button onclick="setInnerLineOpacity(1)" class="bg-white border-2 border-pink-400 text-pink-700 px-4 py-2 rounded-xl text-sm font-bold flex-1">خطوط واضحة</button>
+                        <button onclick="setInnerLineOpacity(0.5)" class="bg-white border-2 border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold flex-1">خطوط ناعمة</button>
+                    </div>
+                `;
+                nextBtn.querySelector('span').textContent = "الانتقال للتلوين والملمس";
+            }
+            else if (butterflyStep === 3) {
+                stepText.textContent = "الخطوة 3 من 5: التلوين بالألوان الشمعية واختيار الملمس 🎨";
+                titleEl.textContent = "الخطوة الثالثة 🎨";
+                bodyEl.textContent = "نوزّع ألوان الشمع، وللحصول على ملمس للجناح نضع تحت الورقة خيش أو ورق صنفرة!";
+                
+                controlsDiv.innerHTML = `
+                    <p class="text-xs font-bold text-slate-600">1. اختر لون جناح الفراشة (الضوء والظل):</p>
+                    <div class="flex gap-2 mb-2">
+                        <button onclick="setWingColor('#f472b6')" class="w-10 h-10 rounded-full bg-pink-400 border-2 border-white shadow"></button>
+                        <button onclick="setWingColor('#fbbf24')" class="w-10 h-10 rounded-full bg-amber-400 border-2 border-white shadow"></button>
+                        <button onclick="setWingColor('#38bdf8')" class="w-10 h-10 rounded-full bg-sky-400 border-2 border-white shadow"></button>
+                        <button onclick="setWingColor('#a7f3d0')" class="w-10 h-10 rounded-full bg-emerald-300 border-2 border-white shadow"></button>
+                        <button onclick="setWingColor('#c084fc')" class="w-10 h-10 rounded-full bg-purple-400 border-2 border-white shadow"></button>
+                    </div>
+                    <p class="text-xs font-bold text-slate-600">2. ضع خامة تحت الورقة للملمس:</p>
+                    <div class="flex gap-2">
+                        <button onclick="setTexture('burlap')" class="bg-amber-100 border-2 border-amber-400 text-amber-900 px-3 py-1.5 rounded-xl text-xs font-bold flex-1">قماش الخيش 🌾</button>
+                        <button onclick="setTexture('sandpaper')" class="bg-amber-200 border-2 border-amber-500 text-amber-950 px-3 py-1.5 rounded-xl text-xs font-bold flex-1">ورق صنفرة 📜</button>
+                    </div>
+                `;
+                nextBtn.querySelector('span').textContent = "الانتقال لقص الفراشة بالمقص";
+            }
+            else if (butterflyStep === 4) {
+                stepText.textContent = "الخطوة 4 من 5: قص الفراشة بالمقص ✂️";
+                titleEl.textContent = "الخطوة الرابعة ✂️";
+                bodyEl.textContent = "نقص الفراشة بحذر حول الخط الخارجي لنستعد لتثبيتها على الأغراض.";
+                
+                scissorsOverlay.classList.remove('hidden');
+                scissorsOverlay.classList.add('flex');
+
+                controlsDiv.innerHTML = `
+                    <div class="p-3 bg-pink-100 rounded-2xl border border-pink-300 text-center">
+                        <span class="text-3xl">✂️✨</span>
+                        <p class="text-xs font-black text-pink-900 mt-1">يتم الآن قص الفراشة الجميلة بدقة!</p>
+                    </div>
+                `;
+                nextBtn.querySelector('span').textContent = "الانتقال للتثبيت والإخراج النهائي";
+            }
+            else if (butterflyStep === 5) {
+                stepText.textContent = "الخطوة 5 من 5: تثبيت الفراشة على الأغراض (الإخراج النهائي) 🎒";
+                titleEl.textContent = "الخطوة الخامسة 🎒🖼️";
+                bodyEl.textContent = "نستعمل الغراء لتثبيت الفراشة على حقيبة أو برواز صورة أو علبة أقلام لنستفيد منها جمالياً ونفعياً (شكل 13)!";
+                
+                controlsDiv.innerHTML = `
+                    <p class="text-xs font-bold text-slate-600">اختر الغرض الذي تريد تزيينه بالفراشة:</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setTargetObject('🎒')" class="bg-white border-2 border-slate-200 p-2 rounded-xl text-center hover:border-pink-500 font-bold text-xs">حقيبة 🎒</button>
+                        <button onclick="setTargetObject('🖼️')" class="bg-white border-2 border-slate-200 p-2 rounded-xl text-center hover:border-pink-500 font-bold text-xs">برواز 🖼️</button>
+                        <button onclick="setTargetObject('✏️')" class="bg-white border-2 border-slate-200 p-2 rounded-xl text-center hover:border-pink-500 font-bold text-xs">قلم وعلبة ✏️</button>
+                    </div>
+                `;
+                nextBtn.querySelector('span').textContent = "إنهاء وتسلّم الوسام ⭐";
+            }
+        }
+
+        function setOutlineWidth(w) {
+            playSound('click');
+            const wings = ['wingLT', 'wingRT', 'wingLB', 'wingRB'];
+            wings.forEach(id => {
+                document.getElementById(id).setAttribute('stroke-width', w);
+            });
+        }
+
+        function setInnerLineOpacity(op) {
+            playSound('click');
+            document.getElementById('butterflyInnerLines').setAttribute('opacity', op);
+        }
+
+        /* TROPHY MODAL */
+        function openTrophyModal() {
+            playSound('click');
+            document.getElementById('trophyModal').classList.remove('hidden');
+        }
+
+        function closeTrophyModal() {
+            playSound('click');
+            document.getElementById('trophyModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
